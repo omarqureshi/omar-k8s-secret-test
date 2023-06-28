@@ -1,0 +1,17 @@
+services:
+  web:
+    image: "130362918098.dkr.ecr.us-east-1.amazonaws.com/hardlight/omar-test:1"
+    ports:
+      - "8080:8080"
+    build: .
+    volumes:
+      - ".:/var/task"
+      - "/var/task/shared/pids"
+    environment:
+      FOO: foo
+      SECRET_BAR: bar
+  bundle:
+    build: .
+    volumes:
+      - ".:/var/task"
+    command: "bundle"

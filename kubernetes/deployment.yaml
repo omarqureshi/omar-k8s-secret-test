@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: omar-test
+  name: omar-test
+  labels:
+    app: omar
+    role: test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: omar
+      role: test
+  template:
+    metadata:
+      labels:
+        app: omar
+        role: test
+    spec:
+      serviceAccountName: omar-test-service-account
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - {key: app, operator: In, values: [omar]}
+                  - {key: role, operator: In, values: [test]}
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "omar-test-secrets"
+      containers:
+      - name: omar-test
+        image: 130362918098.dkr.ecr.us-east-1.amazonaws.com/hardlight/omar-test:1
+        ports:
+        - containerPort: 8080
+          name: external-rest
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: "1000m"
+          limits:
+            memory: 2Gi
+            cpu: "1000m"
+        env:
+          - name: FOO
+            value: foo
+          - name: SECRET_BAR
+            valueFrom:
+              secretKeyRef:
+                name: omar-test-secrets
+                key: OMAR_SECRET_BAR
+        volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+        envFrom:
+          - secretRef:
+              name: omar-test-secrets
